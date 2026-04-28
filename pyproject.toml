@@ -1,0 +1,38 @@
+[project]
+name = "intake-agentic-triage"
+version = "0.0.1"
+description = "Agentic IT Helpdesk triage — Anthropic Hackathon Scenario 5 'The Intake'."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [
+    { name = "The Intake team" },
+]
+dependencies = [
+    "anthropic[bedrock]",
+    "boto3",
+    "pydantic>=2",
+    "claude-agent-sdk",
+    "rich",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests", "evals"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agents*", "tools*", "hooks*", "evals*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

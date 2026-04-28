@@ -40,7 +40,8 @@ desktop.ini
 # Local-only Claude Code settings (not shared)
 .claude/settings.local.json
 # Claude Code runtime logs (we'll log under .claude/logs/)
-.claude/logs/
+.claude/logs/*
+!.claude/logs/.gitkeep
 # Local plan/scratch files
 .claude/scratch/
 
@@ -53,7 +54,7 @@ desktop.ini
 .env.*.local
 
 # ─── Eval runs (we keep results under git only when committed intentionally) ─
-evals/runs/
+evals/runs/*
 !evals/runs/.gitkeep
 
 # ─── Smoke / scratch ─────────────────────────────────────
