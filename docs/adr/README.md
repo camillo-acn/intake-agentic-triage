@@ -14,6 +14,7 @@ this; prefer invoking it over editing by hand.
 |-----|-------|--------|------|
 | [ADR-001](001-eval-primitives.md) | Eval primitives: task, grader, trajectory, outcome | Accepted | 2026-04-28 |
 | [ADR-002](002-domain-it-helpdesk.md) | Domain selection: IT Helpdesk triage | Accepted | 2026-04-28 |
+| [ADR-003](003-topology.md) | Multi-agent topology: Coordinator + Classifier + RiskAssessor | Accepted | 2026-04-28 |
 
 ## Status values
 

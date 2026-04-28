@@ -22,6 +22,7 @@ Exit code is always 0 — this is reporting, not CI gating.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import sys
@@ -33,6 +34,8 @@ from typing import Any
 from rich.console import Console
 from rich.table import Table
 
+from agents.contracts import IntakeRequest
+from agents.coordinator import triage
 from evals.graders.llm_judge import grade_llm_judge
 from evals.graders.rule_based import grade_rule_based
 from evals.graders.trajectory import grade_trajectory
@@ -64,21 +67,33 @@ def load_cases(path: Path) -> list[dict[str, Any]]:
     return payload
 
 
-def run_pipeline(case: dict[str, Any]) -> dict[str, Any]:
-    """Phase 1 stub pipeline.
-
-    Always returns the most common helpdesk shape (``password_reset`` /
-    ``low`` / no escalation) with a low confidence. This is the baseline
-    every later iteration must beat. Replaced wholesale in Phase 2 by
-    the real Coordinator.
-    """
+async def _run_pipeline_async(case: dict[str, Any]) -> dict[str, Any]:
+    """Async pipeline call routed through the real Coordinator."""
+    request = IntakeRequest(id=case["id"], raw_request=case["raw_request"])
+    decision = await triage(request)
     return {
-        "category": "password_reset",
-        "impact": "low",
-        "escalate": False,
-        "confidence": 0.5,
-        "rationale": "stub pipeline: returns the modal class for every input",
+        "category": decision.category,
+        "impact": decision.impact,
+        "escalate": decision.escalate,
+        "confidence": decision.confidence,
+        "rationale": decision.rationale,
+        "recommended_action": decision.recommended_action,
+        "trace": decision.trace,
     }
+
+
+def run_pipeline(case: dict[str, Any]) -> dict[str, Any]:
+    """Phase 2/3 pipeline: Coordinator + Classifier + RiskAssessor.
+
+    Synchronous wrapper around the async coordinator; each call runs the
+    classifier (with three deterministic tools) then the risk assessor
+    (three more tools), applies the escalation rule, and returns a
+    prediction dict carrying the full ``trace`` for the trajectory
+    grader. Bedrock errors are absorbed inside the coordinator and
+    surface as a safe-by-escalate verdict so a single throttled call
+    cannot drag the whole run down.
+    """
+    return asyncio.run(_run_pipeline_async(case))
 
 
 def _stratified_judge_sample(cases: list[dict[str, Any]]) -> list[int]:
@@ -198,11 +213,15 @@ def evaluate(
     rows: list[dict[str, Any]] = []
     for idx, case in enumerate(cases):
         prediction = run_pipeline(case)
+        trace_payload = {
+            "steps": prediction.get("trace", []),
+            "final_escalation": prediction.get("escalate", False),
+        }
         row: dict[str, Any] = {
             "case": case,
             "prediction": prediction,
             "grade_rule_based": grade_rule_based(case, prediction),
-            "grade_trajectory": grade_trajectory(case, trace=None),
+            "grade_trajectory": grade_trajectory(case, trace=trace_payload),
         }
         if idx in judge_set:
             row["grade_llm_judge"] = grade_llm_judge(case, prediction)

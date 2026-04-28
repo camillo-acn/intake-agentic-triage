@@ -1,19 +1,38 @@
-"""Trajectory grader (stub).
+"""Trajectory grader.
 
-In Phase 2 the Coordinator will emit a structured ``trace`` describing the
-specialists it invoked and their outcomes. This grader scores that path
-rather than the final answer: it answers "did the system reach the right
-escalation through the right route?".
+Scores the *path* the system took, not the final answer. We look for
+two things in the coordinator's emitted trace:
 
-For Phase 1 the pipeline does not yet emit a trace, so this is a stub: it
-accepts an optional ``trace`` dict and returns zeros when the trace is
-empty. The shape of the return value is the contract the scorecard relies
-on, so it is stable from this commit forward.
+1. ``steps_count`` — how many specialist (LLM) steps fired. The
+   target topology has two specialists (classifier + risk_assessor)
+   plus the coordinator decision, so a healthy trace contains roughly
+   2-3 LLM-level steps. Tool steps are excluded from this count to
+   keep the metric stable as we add more heuristic tools.
+2. ``escalation_path_correct`` — whether the coordinator's final
+   ``escalate`` flag matches the case's ``expected_escalation``. This
+   is a duplicate signal vs. the rule-based grader, but kept here
+   because the trajectory view is what the LLM judge consumes when
+   reasoning about *how* the system arrived at the answer.
+
+For backward compatibility with the Phase 1 stub the grader still
+accepts ``trace=None`` / ``trace={}`` and returns zeros.
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+# Steps we treat as "specialist work" for the steps_count metric.
+_LLM_STEP_PREFIXES: tuple[str, ...] = ("llm:", "decision:")
+
+
+def _count_llm_steps(steps: list[dict[str, Any]]) -> int:
+    return sum(
+        1
+        for s in steps
+        if isinstance(s, dict)
+        and any(str(s.get("step", "")).startswith(p) for p in _LLM_STEP_PREFIXES)
+    )
 
 
 def grade_trajectory(case: dict[str, Any], trace: dict[str, Any] | None) -> dict[str, Any]:
@@ -21,18 +40,17 @@ def grade_trajectory(case: dict[str, Any], trace: dict[str, Any] | None) -> dict
 
     Args:
         case: ground-truth case dict.
-        trace: pipeline trace dict, or ``None``/``{}`` when the pipeline
-            does not emit one yet (Phase 1 baseline).
+        trace: pipeline trace dict ``{steps, final_escalation}`` or
+            ``None``/``{}`` when no trace is available.
 
     Returns:
-        Dict ``{steps_count, escalation_path_correct}``. With an empty
-        trace both fields are zero/false.
+        Dict ``{steps_count, escalation_path_correct}``.
     """
     if not trace:
         return {"steps_count": 0, "escalation_path_correct": False}
 
     steps = trace.get("steps") or []
-    steps_count = len(steps)
+    steps_count = _count_llm_steps(steps) if isinstance(steps, list) else 0
 
     expected_escalation = bool(case.get("expected_escalation"))
     final_escalation = bool(trace.get("final_escalation", trace.get("escalation", False)))

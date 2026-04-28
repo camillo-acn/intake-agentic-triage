@@ -11,6 +11,17 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "create_ticket|notify_oncall",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/pretooluse_writes.py"
+          }
+        ]
+      }
     ]
   }
 }
