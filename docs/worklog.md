@@ -5,6 +5,10 @@ Append-only log. Newest entry on top. Each entry follows
 done, which Claude Code asset was used or created, and what was learned.
 The git log shows the *what*; this file shows the *how*.
 
+## 2026-04-28 14:57 — Phase 1 eval foundation
+
+Stratified dataset (15 cases, 3 per category, 2 ambiguous + 1 multilingual + 12 clean) and adversarial set (5 cases: 2 prompt injection, 1 contradictory signals, 1 category override, 1 social engineering) landed under `evals/dataset/` and `evals/adversarial/`. Three-grader stack implemented: rule-based (exact match, mean of three booleans), Bedrock LLM judge (Claude Sonnet 4 via `bootcamp` profile, stratified one-per-category sample, strict JSON with single retry + fence stripping, graceful skip on missing creds), trajectory grader stub. ADR-001 (eval primitives) and ADR-002 (domain selection) authored via the `adr-writer` skill pattern; ADR index updated. New `/eval` and `/eval-adv` slash commands exposed. Baseline run (`evals/runs/20260428T125719Z.json`) confirms the stub pipeline floor: dataset Cat Acc 0.20, Impact Acc 0.33, Escalation Acc 0.53, Mean Score 0.36 — the number every Phase 2/3 commit must beat. Judge calls all returned `rationale_quality=1` for the stub, as expected.
+
 ## 2026-04-28 14:38 — Phase 0 bootstrap
 
 Phase 0 bootstrap: scaffolded repo structure, CLAUDE.md, .claude/ asset

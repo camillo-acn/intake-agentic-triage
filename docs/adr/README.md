@@ -12,9 +12,8 @@ this; prefer invoking it over editing by hand.
 
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
-|     |       |        |      |
-|     |       |        |      |
-|     |       |        |      |
+| [ADR-001](001-eval-primitives.md) | Eval primitives: task, grader, trajectory, outcome | Accepted | 2026-04-28 |
+| [ADR-002](002-domain-it-helpdesk.md) | Domain selection: IT Helpdesk triage | Accepted | 2026-04-28 |
 
 ## Status values
 

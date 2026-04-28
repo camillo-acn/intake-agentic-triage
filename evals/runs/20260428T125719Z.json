@@ -1,0 +1,470 @@
+{
+  "generated_at": "20260428T125719Z",
+  "suite": "dataset",
+  "n_cases": 15,
+  "results": [
+    {
+      "case": {
+        "id": "case-001",
+        "raw_request": "Hi, I forgot my Windows password and the self-service portal keeps timing out. Can you help me reset it?",
+        "expected_category": "password_reset",
+        "expected_impact": "low",
+        "expected_escalation": false,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": true,
+        "impact_match": true,
+        "escalation_match": true,
+        "score": 1.0
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      },
+      "grade_llm_judge": {
+        "rationale_quality": 1,
+        "action_appropriateness": 4,
+        "justification": "Rationale admits to being a stub returning modal class, showing no actual analysis. However, the predicted category, impact, and escalation decision are correct for this scenario."
+      }
+    },
+    {
+      "case": {
+        "id": "case-002",
+        "raw_request": "My corporate password expired this morning and the reset link in the email never arrived. I cannot get into Outlook or Teams for our 10am team standup.",
+        "expected_category": "password_reset",
+        "expected_impact": "medium",
+        "expected_escalation": false,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": true,
+        "impact_match": false,
+        "escalation_match": true,
+        "score": 0.6667
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-003",
+        "raw_request": "I'm locked out of my account and I have a board demo in 30 minutes that I'm presenting from this laptop. SSO keeps rejecting my credentials and the recovery flow is failing.",
+        "expected_category": "password_reset",
+        "expected_impact": "high",
+        "expected_escalation": true,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": true,
+        "impact_match": false,
+        "escalation_match": false,
+        "score": 0.3333
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-004",
+        "raw_request": "The scroll wheel on my work mouse stopped responding. It's annoying but I can still get by with the touchpad.",
+        "expected_category": "hardware_issue",
+        "expected_impact": "low",
+        "expected_escalation": false,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": true,
+        "escalation_match": true,
+        "score": 0.6667
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      },
+      "grade_llm_judge": {
+        "rationale_quality": 1,
+        "action_appropriateness": 1,
+        "justification": "Wrong category (password_reset vs hardware_issue), admits to being a stub pipeline, rationale doesn't justify classification at all"
+      }
+    },
+    {
+      "case": {
+        "id": "case-005",
+        "raw_request": "My laptop fan has been running at full speed for the last two days and the chassis gets very hot during meetings. Performance is starting to degrade.",
+        "expected_category": "hardware_issue",
+        "expected_impact": "medium",
+        "expected_escalation": false,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": true,
+        "score": 0.3333
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-006",
+        "raw_request": "Rack 14 in the Milan datacenter just lost both power supplies on the primary storage array. Multiple production services are now offline and customer traffic is failing.",
+        "expected_category": "hardware_issue",
+        "expected_impact": "critical",
+        "expected_escalation": true,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": false,
+        "score": 0.0
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-007",
+        "raw_request": "The new internal travel-booking app shows the wrong currency symbol next to expense totals on the summary page. Numbers look correct, just the symbol is off.",
+        "expected_category": "software_bug",
+        "expected_impact": "low",
+        "expected_escalation": false,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": true,
+        "escalation_match": true,
+        "score": 0.6667
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      },
+      "grade_llm_judge": {
+        "rationale_quality": 1,
+        "action_appropriateness": 1,
+        "justification": "Model incorrectly categorized as password_reset instead of software_bug and admitted to using stub pipeline rather than analyzing the actual issue"
+      }
+    },
+    {
+      "case": {
+        "id": "case-008",
+        "raw_request": "Excel keeps crashing every time I open the Q1 forecast workbook. It happens within seconds of opening and I lose any unsaved changes from the linked sheets.",
+        "expected_category": "software_bug",
+        "expected_impact": "medium",
+        "expected_escalation": false,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": true,
+        "score": 0.3333
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-009",
+        "raw_request": "Finance cannot generate the month-end reconciliation report. The button throws a 'permission denied' error and the audit deadline is tomorrow afternoon.",
+        "expected_category": "software_bug",
+        "expected_impact": "high",
+        "expected_escalation": true,
+        "tags": [
+          "ambiguous",
+          "software_bug_or_access_request"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": false,
+        "score": 0.0
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-010",
+        "raw_request": "Please add me to the marketing-assets shared drive folder so I can pick up brand templates for next week's campaign.",
+        "expected_category": "access_request",
+        "expected_impact": "low",
+        "expected_escalation": false,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": true,
+        "escalation_match": true,
+        "score": 0.6667
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      },
+      "grade_llm_judge": {
+        "rationale_quality": 1,
+        "action_appropriateness": 1,
+        "justification": "Completely wrong category (password_reset vs access_request), admits to being a stub pipeline, shows no actual analysis of the request"
+      }
+    },
+    {
+      "case": {
+        "id": "case-011",
+        "raw_request": "Buongiorno, ho bisogno di accesso al nuovo tool di analytics 'Lumen' per il mio team di product. We start onboarding clients with it next Monday and four analysts still cannot log in.",
+        "expected_category": "access_request",
+        "expected_impact": "medium",
+        "expected_escalation": false,
+        "tags": [
+          "multilingual",
+          "en_it"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": true,
+        "score": 0.3333
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-012",
+        "raw_request": "Oncall here. I need read-write access to the production payments database for the next four hours to investigate a stuck settlement batch impacting merchant payouts.",
+        "expected_category": "access_request",
+        "expected_impact": "high",
+        "expected_escalation": true,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": false,
+        "score": 0.0
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-013",
+        "raw_request": "I just got an email that looks like our IT password-reset notice but the link points to a typo'd domain. I did not click anything but wanted to flag it so you can warn other staff.",
+        "expected_category": "security_incident",
+        "expected_impact": "low",
+        "expected_escalation": true,
+        "tags": [
+          "ambiguous",
+          "phishing_vs_password_reset"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": true,
+        "escalation_match": false,
+        "score": 0.3333
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      },
+      "grade_llm_judge": {
+        "rationale_quality": 1,
+        "action_appropriateness": 1,
+        "justification": "Rationale is a stub placeholder. Failed to escalate a phishing attempt - major security risk requiring immediate IT security team notification."
+      }
+    },
+    {
+      "case": {
+        "id": "case-014",
+        "raw_request": "Defender just quarantined what it flagged as a credential-stealing trojan on my laptop after I opened a vendor invoice attachment. The machine is still on the corporate network.",
+        "expected_category": "security_incident",
+        "expected_impact": "high",
+        "expected_escalation": true,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": false,
+        "score": 0.0
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    },
+    {
+      "case": {
+        "id": "case-015",
+        "raw_request": "Our SIEM is showing 8GB of outbound traffic from a finance workstation to an unknown IP overnight, and the user says they were not logged in. We suspect data exfiltration in progress.",
+        "expected_category": "security_incident",
+        "expected_impact": "critical",
+        "expected_escalation": true,
+        "tags": [
+          "clean"
+        ]
+      },
+      "prediction": {
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": false,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input"
+      },
+      "grade_rule_based": {
+        "category_match": false,
+        "impact_match": false,
+        "escalation_match": false,
+        "score": 0.0
+      },
+      "grade_trajectory": {
+        "steps_count": 0,
+        "escalation_path_correct": false
+      }
+    }
+  ]
+}

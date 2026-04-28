@@ -1,24 +1,29 @@
 """Eval scorecard entry point.
 
-Phase 0 stub: loads JSON cases from ``evals/dataset/``, runs them through a
-placeholder pipeline, applies a rule-based grader (exact match on category
-and impact), prints a Rich summary table, and persists the run as JSON in
-``evals/runs/``.
+Phase 1: loads the stratified dataset (and optionally the adversarial
+set), runs each case through a stub pipeline, applies the rule-based
+grader to every case, applies the LLM judge to one stratified sample
+per category, and prints a Rich summary table. The full per-case run is
+persisted to ``evals/runs/<UTC-timestamp>.json``.
 
-The pipeline stub is intentionally trivial: Phase 2 wires in the real
-Coordinator. The shape of the run output is the contract the grader and
-later analyses will rely on, so it is stable from this commit forward.
+The pipeline stub is intentionally trivial: it always returns
+``password_reset / low / escalate=False``. This gives a real *floor* to
+beat once the Coordinator + specialists land in Phase 2/3, and it makes
+the eval delta visible in commit messages.
 
-Invoke either of:
+Usage:
 
-    python -m evals.scorecard
-    python evals/scorecard.py
+    python -m evals.scorecard               # dataset only
+    python -m evals.scorecard --adversarial # dataset + adversarial set
+
+Exit code is always 0 — this is reporting, not CI gating.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
-import random
+import logging
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -28,6 +33,12 @@ from typing import Any
 from rich.console import Console
 from rich.table import Table
 
+from evals.graders.llm_judge import grade_llm_judge
+from evals.graders.rule_based import grade_rule_based
+from evals.graders.trajectory import grade_trajectory
+
+LOGGER = logging.getLogger(__name__)
+
 CATEGORIES: tuple[str, ...] = (
     "password_reset",
     "hardware_issue",
@@ -35,116 +46,202 @@ CATEGORIES: tuple[str, ...] = (
     "access_request",
     "security_incident",
 )
-IMPACTS: tuple[str, ...] = ("low", "medium", "high", "critical")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DATASET_DIR = REPO_ROOT / "evals" / "dataset"
+DATASET_PATH = REPO_ROOT / "evals" / "dataset" / "cases.json"
+ADVERSARIAL_PATH = REPO_ROOT / "evals" / "adversarial" / "cases.json"
 RUNS_DIR = REPO_ROOT / "evals" / "runs"
 
 
-def load_cases(dataset_dir: Path = DATASET_DIR) -> list[dict[str, Any]]:
-    """Load every ``*.json`` case file under ``dataset_dir``.
-
-    Empty or missing directory yields zero cases without raising.
-    """
-    if not dataset_dir.exists():
+def load_cases(path: Path) -> list[dict[str, Any]]:
+    """Load a JSON array of cases from ``path``. Missing file => empty list."""
+    if not path.exists():
         return []
-    cases: list[dict[str, Any]] = []
-    for path in sorted(dataset_dir.glob("*.json")):
-        try:
-            with path.open("r", encoding="utf-8") as fh:
-                payload = json.load(fh)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"invalid JSON in {path}: {exc}") from exc
-        if isinstance(payload, list):
-            cases.extend(payload)
-        elif isinstance(payload, dict):
-            cases.append(payload)
-        else:
-            raise ValueError(f"unexpected JSON root in {path}: {type(payload).__name__}")
-    return cases
+    with path.open("r", encoding="utf-8") as fh:
+        payload = json.load(fh)
+    if not isinstance(payload, list):
+        raise ValueError(f"expected JSON array in {path}, got {type(payload).__name__}")
+    return payload
 
 
 def run_pipeline(case: dict[str, Any]) -> dict[str, Any]:
-    """Phase 0 placeholder pipeline.
+    """Phase 1 stub pipeline.
 
-    Returns a deterministic-ish prediction seeded by the case id, so re-runs
-    are reproducible across invocations. Replaced wholesale in Phase 2 by
+    Always returns the most common helpdesk shape (``password_reset`` /
+    ``low`` / no escalation) with a low confidence. This is the baseline
+    every later iteration must beat. Replaced wholesale in Phase 2 by
     the real Coordinator.
     """
-    seed = str(case.get("id", "")) or json.dumps(case, sort_keys=True)
-    rng = random.Random(seed)
     return {
-        "category": rng.choice(CATEGORIES),
-        "impact": rng.choice(IMPACTS),
-        "confidence": round(rng.uniform(0.3, 0.95), 2),
+        "category": "password_reset",
+        "impact": "low",
+        "escalate": False,
+        "confidence": 0.5,
+        "rationale": "stub pipeline: returns the modal class for every input",
     }
 
 
-def grade(case: dict[str, Any], prediction: dict[str, Any]) -> dict[str, Any]:
-    """Rule-based grader: exact match on category and impact."""
-    category_ok = prediction.get("category") == case.get("expected_category")
-    impact_ok = prediction.get("impact") == case.get("expected_impact")
-    return {
-        "category_correct": bool(category_ok),
-        "impact_correct": bool(impact_ok),
-        "both_correct": bool(category_ok and impact_ok),
-    }
+def _stratified_judge_sample(cases: list[dict[str, Any]]) -> list[int]:
+    """Pick one case index per category, in dataset order, for LLM judging.
+
+    Keeps the judge cost predictable (one Bedrock call per category) while
+    still covering the taxonomy. Indices into the original ``cases`` list
+    are returned so the caller can attach judge results in place.
+    """
+    seen: dict[str, int] = {}
+    for idx, case in enumerate(cases):
+        cat = case.get("expected_category")
+        if cat in CATEGORIES and cat not in seen:
+            seen[cat] = idx
+    return [seen[c] for c in CATEGORIES if c in seen]
 
 
-def render_table(results: list[dict[str, Any]], console: Console) -> None:
-    """Print per-category counts and accuracy."""
-    by_cat: dict[str, dict[str, int]] = defaultdict(lambda: {"n": 0, "cat_ok": 0, "imp_ok": 0})
+def _render_table(results: list[dict[str, Any]], console: Console, title: str) -> None:
+    """Print the per-category accuracy table plus a totals row."""
+    by_cat: dict[str, dict[str, float]] = defaultdict(
+        lambda: {"n": 0, "cat": 0, "imp": 0, "esc": 0, "score": 0.0}
+    )
     for row in results:
-        bucket = by_cat[row["case"].get("expected_category", "<unset>")]
+        cat = row["case"].get("expected_category", "<unset>")
+        bucket = by_cat[cat]
+        g = row["grade_rule_based"]
         bucket["n"] += 1
-        bucket["cat_ok"] += int(row["grade"]["category_correct"])
-        bucket["imp_ok"] += int(row["grade"]["impact_correct"])
+        bucket["cat"] += int(g["category_match"])
+        bucket["imp"] += int(g["impact_match"])
+        bucket["esc"] += int(g["escalation_match"])
+        bucket["score"] += float(g["score"])
 
-    table = Table(title="Intake scorecard")
-    table.add_column("Category", style="cyan")
+    table = Table(title=title)
+    table.add_column("Category", style="cyan", no_wrap=True)
     table.add_column("N", justify="right")
-    table.add_column("Category acc.", justify="right")
-    table.add_column("Impact acc.", justify="right")
+    table.add_column("Cat Acc", justify="right")
+    table.add_column("Impact Acc", justify="right")
+    table.add_column("Escalation Acc", justify="right")
+    table.add_column("Mean Score", justify="right")
 
     if not by_cat:
-        table.add_row("(no cases)", "0", "-", "-")
-    else:
-        for cat in sorted(by_cat):
-            stats = by_cat[cat]
-            n = stats["n"]
-            cat_acc = f"{stats['cat_ok'] / n:.2f}" if n else "-"
-            imp_acc = f"{stats['imp_ok'] / n:.2f}" if n else "-"
-            table.add_row(cat, str(n), cat_acc, imp_acc)
+        table.add_row("(no cases)", "0", "-", "-", "-", "-")
+        console.print(table)
+        return
 
+    total_n = total_cat = total_imp = total_esc = 0
+    total_score = 0.0
+    for cat in sorted(by_cat):
+        s = by_cat[cat]
+        n = int(s["n"])
+        total_n += n
+        total_cat += int(s["cat"])
+        total_imp += int(s["imp"])
+        total_esc += int(s["esc"])
+        total_score += s["score"]
+        table.add_row(
+            cat,
+            str(n),
+            f"{s['cat'] / n:.2f}",
+            f"{s['imp'] / n:.2f}",
+            f"{s['esc'] / n:.2f}",
+            f"{s['score'] / n:.2f}",
+        )
+
+    table.add_section()
+    table.add_row(
+        "[bold]TOTAL[/bold]",
+        str(total_n),
+        f"{total_cat / total_n:.2f}",
+        f"{total_imp / total_n:.2f}",
+        f"{total_esc / total_n:.2f}",
+        f"{total_score / total_n:.2f}",
+    )
     console.print(table)
 
 
-def save_run(results: list[dict[str, Any]], runs_dir: Path = RUNS_DIR) -> Path:
-    """Persist the full run as ``evals/runs/<UTC-timestamp>.json``."""
+def _save_run(
+    *,
+    results: list[dict[str, Any]],
+    suite: str,
+    runs_dir: Path = RUNS_DIR,
+) -> Path:
+    """Persist the run payload to ``evals/runs/<UTC-timestamp>.json``."""
     runs_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out_path = runs_dir / f"{stamp}.json"
     payload = {
         "generated_at": stamp,
+        "suite": suite,
         "n_cases": len(results),
         "results": results,
     }
     with out_path.open("w", encoding="utf-8") as fh:
-        json.dump(payload, fh, indent=2)
+        json.dump(payload, fh, indent=2, ensure_ascii=False)
     return out_path
 
 
-def main() -> int:
-    console = Console()
-    cases = load_cases()
-    results: list[dict[str, Any]] = []
-    for case in cases:
-        prediction = run_pipeline(case)
-        results.append({"case": case, "prediction": prediction, "grade": grade(case, prediction)})
+def evaluate(
+    cases: list[dict[str, Any]],
+    *,
+    judge_indices: list[int] | None = None,
+) -> list[dict[str, Any]]:
+    """Run pipeline + graders over ``cases``.
 
-    render_table(results, console)
-    out_path = save_run(results)
+    Args:
+        cases: list of case dicts.
+        judge_indices: subset of indices to also score with the LLM judge.
+            ``None`` defaults to a stratified one-per-category sample.
+
+    Returns:
+        List of result rows ready to be saved/rendered.
+    """
+    if judge_indices is None:
+        judge_indices = _stratified_judge_sample(cases)
+    judge_set = set(judge_indices)
+
+    rows: list[dict[str, Any]] = []
+    for idx, case in enumerate(cases):
+        prediction = run_pipeline(case)
+        row: dict[str, Any] = {
+            "case": case,
+            "prediction": prediction,
+            "grade_rule_based": grade_rule_based(case, prediction),
+            "grade_trajectory": grade_trajectory(case, trace=None),
+        }
+        if idx in judge_set:
+            row["grade_llm_judge"] = grade_llm_judge(case, prediction)
+        rows.append(row)
+    return rows
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run the Intake eval scorecard.")
+    parser.add_argument(
+        "--adversarial",
+        action="store_true",
+        help="Also run the adversarial set (evals/adversarial/cases.json).",
+    )
+    args = parser.parse_args(argv)
+
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
+    console = Console()
+
+    dataset_cases = load_cases(DATASET_PATH)
+    console.print(f"[dim]loaded {len(dataset_cases)} dataset cases from {DATASET_PATH.name}[/dim]")
+    dataset_results = evaluate(dataset_cases)
+    _render_table(dataset_results, console, title="Intake scorecard — dataset")
+
+    all_results: list[dict[str, Any]] = list(dataset_results)
+    suite = "dataset"
+
+    if args.adversarial:
+        adv_cases = load_cases(ADVERSARIAL_PATH)
+        console.print(
+            f"[dim]loaded {len(adv_cases)} adversarial cases from {ADVERSARIAL_PATH.name}[/dim]"
+        )
+        # Adversarial set is small; judge every case.
+        adv_results = evaluate(adv_cases, judge_indices=list(range(len(adv_cases))))
+        _render_table(adv_results, console, title="Intake scorecard — adversarial")
+        all_results.extend(adv_results)
+        suite = "dataset+adversarial"
+
+    out_path = _save_run(results=all_results, suite=suite)
     console.print(f"[dim]run saved to {out_path.relative_to(REPO_ROOT)}[/dim]")
     return 0
 
