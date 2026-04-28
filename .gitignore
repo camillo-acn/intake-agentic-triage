@@ -1,0 +1,66 @@
+# ─── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ─── Virtual environments ────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─── Testing & coverage ──────────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# ─── IDE / Editor ────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── OS ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Claude Code ─────────────────────────────────────────
+# Local-only Claude Code settings (not shared)
+.claude/settings.local.json
+# Claude Code runtime logs (we'll log under .claude/logs/)
+.claude/logs/
+# Local plan/scratch files
+.claude/scratch/
+
+# ─── AWS / Secrets ───────────────────────────────────────
+.aws/
+*.pem
+*.key
+.env
+.env.local
+.env.*.local
+
+# ─── Eval runs (we keep results under git only when committed intentionally) ─
+evals/runs/
+!evals/runs/.gitkeep
+
+# ─── Smoke / scratch ─────────────────────────────────────
+_smoke/
+scratch/
+tmp/
+
+# ─── Bedrock response artifacts ──────────────────────────
+response.json
+payload.json

@@ -1,0 +1,16 @@
+# Default: normalize line endings to LF on commit, checkout as-is
+* text=auto eol=lf
+
+# Explicitly LF for code & docs
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.sh text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.pdf binary
